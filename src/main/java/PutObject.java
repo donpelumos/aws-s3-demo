@@ -31,24 +31,14 @@ public class PutObject {
 
         final AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(Regions.EU_WEST_1).build();
 
-
+        listObjects(s3, bucketName);
+        uploadObject(s3, bucketName, file.getName(), file);
+        listObjects(s3, bucketName);
+        s3.shutdown();
         System.out.println("Done!");
     }
     
-    private static void listObjects(AmazonS3 s3, String bucketName, String keyName){
-        try {
-            // get the current ACL
-            AccessControlList acl = s3.getObjectAcl(bucketName, keyName);
-            // set access for the grantee
-            //EmailAddressGrantee grantee = new EmailAddressGrantee("poyefeso@gmail.com");
-            GroupGrantee grantee = GroupGrantee.AllUsers;
-            Permission permission = Permission.FullControl;
-            acl.grantPermission(grantee, permission);
-            s3.setObjectAcl(bucketName, keyName, acl);
-        } catch (AmazonServiceException e) {
-            System.err.println(e.getErrorMessage());
-            System.exit(1);
-        }
+    private static void listObjects(AmazonS3 s3, String bucketName){
 
         System.out.format("Objects in S3 bucket %s:\n", bucketName);
         ListObjectsV2Result result2 = s3.listObjectsV2(bucketName);
@@ -68,6 +58,20 @@ public class PutObject {
             if(result != null){
 
             }
+        }
+        catch (AmazonServiceException e) {
+            System.err.println(e.getErrorMessage());
+            System.exit(1);
+        }
+        try {
+            // get the current ACL
+            AccessControlList acl = s3.getObjectAcl(bucketName, keyName);
+            // set access for the grantee
+            //EmailAddressGrantee grantee = new EmailAddressGrantee("poyefeso@gmail.com");
+            GroupGrantee grantee = GroupGrantee.AllUsers;
+            Permission permission = Permission.FullControl;
+            acl.grantPermission(grantee, permission);
+            s3.setObjectAcl(bucketName, keyName, acl);
         } catch (AmazonServiceException e) {
             System.err.println(e.getErrorMessage());
             System.exit(1);
