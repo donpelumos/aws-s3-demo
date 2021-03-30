@@ -9,6 +9,8 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -30,10 +32,16 @@ public class PutObject {
         File file = new File(fileName);
 
         final AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(Regions.EU_WEST_1).build();
-
+        System.out.println("******************************************************");
         listObjects(s3, bucketName);
         uploadObject(s3, bucketName, file.getName(), file);
         listObjects(s3, bucketName);
+        System.out.println("******************************************************");
+        createFolder(s3, bucketName, "demo-folder");
+        uploadObject(s3, bucketName, file.getName(), "demo-folder",  file);
+        listObjects(s3, bucketName);
+
+
         s3.shutdown();
         System.out.println("Done!");
     }
@@ -47,9 +55,16 @@ public class PutObject {
             System.out.println("* " + os.getKey());
         }
     }
+    public static List<S3ObjectSummary> getListObjects(AmazonS3 s3, String bucketName){
+
+        System.out.format("Objects in S3 bucket %s:\n", bucketName);
+        ListObjectsV2Result result2 = s3.listObjectsV2(bucketName);
+        List<S3ObjectSummary> objects = result2.getObjectSummaries();
+        return objects;
+    }
     
     private static void uploadObject(AmazonS3 s3, String bucketName, String keyName, File file){
-        PutObjectResult result = null;
+        PutObjectResult result;
 
         System.out.format("Uploading %s to S3 bucket %s...\n", file.getAbsolutePath(), bucketName);
         
@@ -75,6 +90,66 @@ public class PutObject {
         } catch (AmazonServiceException e) {
             System.err.println(e.getErrorMessage());
             System.exit(1);
+        }
+    }
+
+    private static void uploadObject(AmazonS3 s3, String bucketName, String keyName, String folderName, File file){
+        if(!folderExists(folderName, s3, bucketName)){
+            System.out.println("Folder does not exist");
+        }
+        else{
+            System.out.println("Folder exists");
+            keyName = folderName+"/"+keyName;
+            uploadObject(s3, bucketName, keyName, file);
+        }
+    }
+
+    public static boolean folderExists(String folderName, AmazonS3 s3, String bucketName){
+        String fullDescFileName = folderName+"/"+folderName+"-desc.txt";
+        List<S3ObjectSummary> bucketObjects = getListObjects(s3, bucketName);
+        for (S3ObjectSummary os : bucketObjects) {
+            if(os.getKey().equalsIgnoreCase(fullDescFileName)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void createFolder(AmazonS3 s3, String bucketName, String folderName){
+        File file = createDescFile(folderName);
+        if(file != null) {
+            writeToDescFile(file);
+        }
+        String keyName = folderName+"/"+file.getName();
+        uploadObject(s3, bucketName, keyName, file);
+    }
+
+    public static File createDescFile(String fileName){
+        try {
+            File file = new File(fileName+"-desc.txt");
+            if (file.createNewFile()) {
+                System.out.println("File created: " + file.getName());
+            } else {
+                System.out.println("File already exists.");
+            }
+            return file;
+        } catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static void writeToDescFile(File file){
+        String descText = "Descriptor Text";
+        try {
+            FileWriter myWriter = new FileWriter(file);
+            myWriter.write(descText);
+            myWriter.close();
+            System.out.println("Successfully wrote to the file.");
+        } catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
         }
     }
 }
