@@ -40,7 +40,9 @@ public class PutObject {
         createFolder(s3, bucketName, "demo-folder");
         uploadObject(s3, bucketName, file.getName(), "demo-folder",  file);
         listObjects(s3, bucketName);
-
+        System.out.println("******************************************************");
+        deleteObject(s3, bucketName, "demo-folder/heroku.png");
+        listObjects(s3, bucketName);
 
         s3.shutdown();
         System.out.println("Done!");
@@ -150,6 +152,16 @@ public class PutObject {
         } catch (IOException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();
+        }
+    }
+
+    public static void deleteObject(AmazonS3 s3, String bucketName, String keyName){
+        try {
+            s3.deleteObject(bucketName, keyName);
+        }
+        catch (AmazonServiceException e) {
+            System.err.println(e.getErrorMessage());
+            System.exit(1);
         }
     }
 }
